@@ -70,6 +70,23 @@
 //	The eventHandler should take care of repairing flags between interrupts.
 // ----------------------------------------------------------------------------
 
+#include <PubSubClient.h>       // https://github.com/knolleary/pubsubclient
+#include <ArduinoJson.h>
+#include <TimeLib.h>			// http://playground.arduino.cc/code/time
+#include <string.h>
+#include <cstring>
+#include <string>								// C++ specific string functions
+
+extern PubSubClient mqttClient;
+
+extern const char* topic;             // 送信先のトピック名
+extern char* payload;                 // 送信するデータ
+extern const char* MQTT_username;     // MQTT user name
+extern const char* MQTT_password;     // MQTT password
+//extern StaticJsonDocument<200> json_payload;
+
+extern void createMqttJson();
+
 void stateMachine()
 {
 	// Determine what interrupt flags are set
@@ -662,6 +679,22 @@ void stateMachine()
 					Serial.println(F("sMach:: Error receivePacket"));
 				}
 #endif
+			}
+			else {
+				Serial.println(F("success:: receivePacket"));
+				//payload = "Hello1111";
+				//mqttClient.publish(topic, payload);
+				String clientId = "ESP32-" + String(random(0xffff), HEX);
+				if ( mqttClient.connect(clientId.c_str(), MQTT_username, MQTT_password) ) {
+					//Serial.println("MQTT server connected");
+					createMqttJson();
+					mqttClient.publish(topic, payload);
+					//mqttClient.publish("test", "test11111");
+					//mqttClient.publish(topic, "test11111");
+					//mqttClient.publish("test", payload); 
+					mqttClient.disconnect();
+				}
+				//Serial.println(payload);
 			}
 			
 			// Set the modem to receiving BEFORE going back to user space.

@@ -52,6 +52,8 @@
 #include <pins_arduino.h>
 #include <gBase64.h>							// https://github.com/adamvr/arduino-base64 (changed the name)
 
+#include <PubSubClient.h>       // https://github.com/knolleary/pubsubclient
+
 // Local include files
 #include "loraModem.h"
 #include "loraFiles.h"
@@ -277,6 +279,24 @@ void printDigits(unsigned long digits)
     if(digits < 10)
         Serial.print(F("0"));
     Serial.print(digits);
+}
+
+// ----------------------------------------------------------------------------
+// Print leading '0' digits for hours(0) and second(0) when
+// printing values less than 10
+// ----------------------------------------------------------------------------
+static String returnDigits(int digits)
+{
+    // utility function for digital clock display: prints leading 0
+    if(digits < 10)
+	{
+		return ("0" + String(digits));
+		//return String(digits);
+	}
+	else
+	{
+		return String(digits);
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -981,6 +1001,63 @@ void sendstat() {
 
 
 
+//const char* mqttHost = "127.0.0.1"; // localhost, MQTTのIPかホスト名
+//const char* mqttHost = "localhost"; // localhost, MQTTのIPかホスト名
+const char* mqttHost = "mqtt.uko.jp"; // MQTTのIPかホスト名
+const int mqttPort = 1883;       // MQTTのポート
+
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+
+const char* topic = "test";     // 送信先のトピック名
+
+char* payload;                   // 送信するデータ
+const char* MQTT_username = "icecream";     // MQTT user name
+const char* MQTT_password = "WiYefdh3";     // MQTT password
+//StaticJsonDocument<200> json_payload;
+unsigned int frame_counter = 15607;
+char json_buffer[255];
+
+void createMqttJson() {
+	StaticJsonDocument<200> json_payload;
+	char local_timestamp[32];								// XXX was 24
+
+	sprintf(local_timestamp, "%04d-%02d-%02dT%02d:%02d:%02d", year(),month(),day(),hour(),minute(),second());
+	/*
+	string local_time = returnDigits(year())+F("-")+
+						returnDigits(month())+F("-")+
+						returnDigits(day())+F("T")+
+						returnDigits(hour())+F(":")+
+						returnDigits(minute())+F(":")+
+						returnDigits(second());
+						*/
+	Serial.println(local_timestamp);
+	printTime();
+	Serial.println();
+
+	//StaticJsonDocument<200> json_payload;
+
+	//json_payload["time"] = "2020-06-14T10:27:38";
+	/*
+	json_payload["time"] = returnDigits(year())+F("-")+
+						   returnDigits(month())+F("-")+
+						   returnDigits(day())+F("T")+
+						   returnDigits(hour())+F(":")+
+						   returnDigits(minute())+F(":")+
+						   returnDigits(second());
+	*/
+	json_payload["time"] = local_timestamp;					   
+
+	serializeJson(json_payload, json_buffer, sizeof(json_buffer));
+	//serializeJson(json_payload, Serial);
+	//serializeJson(json_payload, payload);
+	payload = &json_buffer[0];
+	Serial.println(payload);
+	frame_counter++;
+}
+
+//HardwareSerial Serial1(1);
+
 // ============================================================================
 // MAIN PROGRAM CODE (SETUP AND LOOP)
 
@@ -995,7 +1072,18 @@ void setup() {
 	MAC_char[18] = 0;
 
 	Serial.begin(_BAUDRATE);						// As fast as possible for bus
+	Serial2.begin(_BAUDRATE, SERIAL_8N1, 25, 27);   // RX:25, TX:27
 	delay(100);	
+  Serial2.print("Hello, Serial2\n");
+  Serial.print("Hello, Serial\n");
+  // AT+JOIN
+  Serial2.print("AT+JOIN\n");
+  Serial.print("AT+JOIN\n");
+  delay(500);
+  // AT+SEND=1:1:1234
+  Serial2.print("AT+SEND=1:1:abcd\n");
+  Serial.print("AT+SEND=1:1:abcd\n");
+  delay(500);
 
 #if _GPS==1
 	// Pins are define in LoRaModem.h together with other pins
@@ -1114,6 +1202,25 @@ void setup() {
 	Serial.print(F(" on IP="));
 	Serial.print(WiFi.localIP());
 	Serial.println();
+	
+	payload = "Hello, MQTT World";
+	Serial.println("test mqtt");
+	mqttClient.setServer(mqttHost, mqttPort);
+	//if (client.connect("test", "icecream", "4x4mptxL")) {
+	while( ! mqttClient.connected() ){
+		Serial.println("Connecting to MQTT...");
+		String clientId = "ESP32-" + String(random(0xffff), HEX);
+		//if ( mqttClient.connect(clientId.c_str()) ) {
+		//if ( mqttClient.connect(clientId.c_str(), "icecream", "4x4mptxL") ) {
+		if ( mqttClient.connect(clientId.c_str(), MQTT_username, MQTT_password) ) {
+			Serial.println("MQTT server connected"); 
+		}
+		delay(1000);
+		randomSeed(micros());
+	}
+	mqttClient.publish(topic, payload);
+	mqttClient.disconnect();
+
 	delay(200);
 	
 	// If we are here we are connected to WLAN
@@ -1291,6 +1398,7 @@ void loop ()
 	// In this case we handle the interrupt ( e.g. message received)
 	// in userspace in loop().
 	//
+	//Serial.println(F("stateMachine()"));
 	stateMachine();									// do the state machine
 	
 	// After a quiet period, make sure we reinit the modem and state machine.
@@ -1418,14 +1526,17 @@ void loop ()
 		// The Gateway nod emessage has nothing to do with the STAT_INTERVAL
 		// message but we schedule it in the same frequency.
 		//
+    Serial.println(F("GATEWAYNODE==1"));
 #if GATEWAYNODE==1
+    Serial.println(F("gwayConfig.isNode"));
 		if (gwayConfig.isNode) {
 			// Give way to internal some Admin if necessary
 			yield();
 			
 			// If the 1ch gateway is a sensor itself, send the sensor values
 			// could be battery but also other status info or sensor info
-		
+
+      Serial.println(F("sensorPacket: Start"));
 			if (sensorPacket() < 0) {
 #if DUSB>=1
 				Serial.println(F("sensorPacket: Error"));
@@ -1449,9 +1560,9 @@ void loop ()
 			if (debug>=1) Serial.flush();
 		}
 #endif
-        pullData();										// Send PULL_DATA message to server
+		pullData();										// Send PULL_DATA message to server
 		startReceiver();
-	
+		
 		pulltime = nowSeconds;
     }
 

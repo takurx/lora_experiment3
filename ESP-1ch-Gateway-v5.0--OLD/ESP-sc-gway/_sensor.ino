@@ -520,6 +520,7 @@ int sensorPacket() {
 	// Note Be aware that the sensor message (which is bytes) in message will be
 	// be expanded if the server expects JSON messages.
 	//
+	Serial.println(F("sensorPacket()-buildPacket()"));
 	int buff_index = buildPacket(tmst, buff_up, LUP, true);
 	
 	frameCount++;

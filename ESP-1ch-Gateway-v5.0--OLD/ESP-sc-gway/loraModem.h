@@ -111,6 +111,26 @@ int freqs [] = {
 	// We should specify downlink frequencies here											
 												// SFxxxBW500
 };
+#elif _LFREQ==925
+// AS923, AS920-923, AS1
+// https://www.thethingsnetwork.org/docs/lorawan/frequency-plans.html
+int freqs [] = {
+	// Uplink
+	923200000, 									// Channel 0, SF7BW125 to SF12BW125 primary
+	923400000, 									// Ch 1, SF7BW125 to SF12BW125
+	922200000, 									// Ch 2, SF7BW125 to SF12BW125
+	922400000, 									// Ch 3, SF7BW125 to SF12BW125
+	922600000, 									// Ch 4, SF7BW125 to SF12BW125
+	922800000, 									// Ch 5, SF7BW125 to SF12BW125
+	923000000, 									// Ch 6, SF7BW125 to SF12BW125
+	922000000, 									// Ch 7, SF7BW125 to SF12BW125
+	922100000, 									// Ch 8, SF7BW250
+	921800000, 									// Ch 9, FSK 
+	// Downlink
+	// We should specify downlink frequencies here											
+	923200000, 									// Channel 10, Uplink channels 1-10 (RX1), dummy
+	923200000 									// Channel 11, SF10BW125
+};
 #else
 int freqs [] = {
 	// Print an Error, Not supported
@@ -242,7 +262,19 @@ struct pins {
 // MOSI 13 / D7
 // CLK  14 / D5
 // SS   16 / D0
-#error "Pin Definitions _PIN_OUT must be 1(HALLARD) or 2 (COMRESULT)"
+struct pins {
+  uint8_t dio0 = 26;
+  uint8_t dio1 = 33;
+  uint8_t dio2 = 32;
+  uint8_t ss = 16;
+  uint8_t rst = 27; // Reset not used
+} pins;
+#define SCK  14
+#define MISO 12
+#define MOSI 13
+#define SS  16
+#define DIO0 26
+//#error "Pin Definitions _PIN_OUT must be 1(HALLARD) or 2 (COMRESULT)"
 #endif
 
 // STATR contains the statictis that are kept by message. 

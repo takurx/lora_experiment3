@@ -267,9 +267,14 @@ struct wpas {
 //	the first line in te struct is reserved for WifiManager.
 //
 wpas wpa[] = {
-	{ "" , "" },							// Reserved for WiFi Manager
-	{ "fire", "water" },
-	{ "ape", "beer" },
+	{ "", "" },							// Reserved for WiFi Manager
+	{ "teTra_Office", "tetratetra" }
+	{ "test-chino", "660bmy88zo374" },
+	//{ "teTra_GHB", "tetratetra" },
+	//{ "INNOVA106", "justdoit" },
+	//{ "INNOVA106-5G", "justdoit" },
+	//{ "GeekHouseTsukuba-a", "tomorinao" },
+	{ "GeekHouseTsukuba-g", "tomorinao" },
 	{ "ssid", "password" }
 };
 

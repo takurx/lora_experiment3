@@ -356,6 +356,7 @@ void addLog(const unsigned char * line, int cnt)
 #if DUSB>=1
 	if (( debug>=1 ) && ( pdebug & P_GUI )) {
 		Serial.print(F("G addLog:: fileno="));
+    Serial.print(F(" test test "));
 		Serial.print(gwayConfig.logFileNo);
 		Serial.print(F(", rec="));
 		Serial.print(gwayConfig.logFileRec);
